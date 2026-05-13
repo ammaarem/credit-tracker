@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Credit Tracker</title>
+<title>Expense Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1147,6 +1147,9 @@ async function loadEntries() {
         if (e.isTotal) { sheetTotal = e.amount; return false; }
         return e.vendor || e.amount;
       });
+
+    // If no real entries exist, don't show a dangling total
+    if (entries.length === 0) sheetTotal = null;
 
     renderEntries();
     updateSummary();
