@@ -1,0 +1,190 @@
+const SHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
+
+// ── HELPERS ────────────────────────────────────────────
+
+// Always make the LAST tab green, clear color on all others
+function reapplyTabColors(ss) {
+  const sheets = ss.getSheets();
+  sheets.forEach((s, i) => {
+    if (i === sheets.length - 1) {
+      s.setTabColor('#00aa00');
+    } else {
+      s.setTabColor(null);
+    }
+  });
+}
+
+// Make the header row bold on a sheet
+function styleHeader(sheet) {
+  const headerRange = sheet.getRange('A1:E1');
+  headerRange.setFontWeight('bold');
+  headerRange.setBackground('#f3f3f3');
+}
+
+// ── MAIN ───────────────────────────────────────────────
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const action = data.action;
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    if (action === 'getSheets') {
+      const sheets = ss.getSheets().map(s => s.getName());
+      return ok({ sheets });
+    }
+
+    if (action === 'getRows') {
+      const sheet = ss.getSheetByName(data.sheet);
+      if (!sheet) return err('Sheet not found');
+      const rows = sheet.getDataRange().getValues();
+      return ok({ rows });
+    }
+
+    if (action === 'appendRow') {
+      const sheet = ss.getSheetByName(data.sheet);
+      if (!sheet) return err('Sheet not found');
+      sheet.appendRow(data.row);
+      return ok({ appended: true });
+    }
+
+    if (action === 'updateRow') {
+      const sheet = ss.getSheetByName(data.sheet);
+      if (!sheet) return err('Sheet not found');
+      sheet.getRange(data.rowIndex, 1, 1, data.row.length).setValues([data.row]);
+      return ok({ updated: true });
+    }
+
+    if (action === 'clearRow') {
+      const sheet = ss.getSheetByName(data.sheet);
+      if (!sheet) return err('Sheet not found');
+      sheet.getRange(data.rowIndex, 1, 1, 5).clearContent();
+      return ok({ cleared: true });
+    }
+
+    if (action === 'addSheet') {
+      const existing = ss.getSheetByName(data.name);
+      if (existing) return err('Sheet already exists');
+      ss.insertSheet(data.name);
+      reapplyTabColors(ss);
+      return ok({ created: true });
+    }
+
+    if (action === 'ensureHeader') {
+      let sheet = ss.getSheetByName(data.sheet);
+      if (!sheet) {
+        sheet = ss.insertSheet(data.sheet);
+        reapplyTabColors(ss);
+      }
+      const first = sheet.getRange('A1').getValue();
+      if (first !== 'Date') {
+        sheet.getRange('A1:E1').setValues([['Date', 'Vendor', 'Item', 'Amount', 'ID']]);
+      }
+      styleHeader(sheet);
+      reapplyTabColors(ss);
+      return ok({ ready: true });
+    }
+
+    if (action === 'writeTotalRow') {
+      const sheet = ss.getSheetByName(data.sheet);
+      if (!sheet) return err('Sheet not found');
+
+      const lastRow = sheet.getLastRow();
+
+      for (let r = lastRow; r >= 1; r--) {
+        if (sheet.getRange(r, 1).getValue() === 'TOTAL') {
+          sheet.getRange(r, 1, 1, 5).clearContent();
+          break;
+        }
+      }
+
+      const dataRows = sheet.getDataRange().getValues();
+      let total = 0;
+      for (let i = 1; i < dataRows.length; i++) {
+        const amt = parseFloat(dataRows[i][3]);
+        if (!isNaN(amt) && dataRows[i][1]) total += amt;
+      }
+
+      const newLast = sheet.getLastRow() + 1;
+      const totalRange = sheet.getRange(newLast, 1, 1, 5);
+      totalRange.setValues([['TOTAL', '', '', total, '']]);
+      totalRange.setFontWeight('bold');
+      totalRange.setBackground('#d9ead3');
+      sheet.getRange(newLast, 1).setHorizontalAlignment('left');
+      sheet.getRange(newLast, 4).setHorizontalAlignment('right');
+
+      styleHeader(sheet);
+
+      return ok({ total, row: newLast });
+    }
+
+    if (action === 'sortSheet') {
+      const sheet = ss.getSheetByName(data.sheet);
+      if (!sheet) return err('Sheet not found');
+      const lastRow = sheet.getLastRow();
+      if (lastRow <= 2) return ok({ sorted: true });
+
+      let totalRowData = null;
+      for (let r = lastRow; r >= 2; r--) {
+        if (sheet.getRange(r, 1).getValue() === 'TOTAL') {
+          totalRowData = sheet.getRange(r, 1, 1, 5).getValues()[0];
+          sheet.getRange(r, 1, 1, 5).clearContent();
+          break;
+        }
+      }
+
+      const dataLastRow = sheet.getLastRow();
+      if (dataLastRow >= 2) {
+        sheet.getRange(2, 1, dataLastRow - 1, 5).sort({ column: 1, ascending: true });
+      }
+
+      if (totalRowData) {
+        const newLast = sheet.getLastRow() + 1;
+        const totalRange = sheet.getRange(newLast, 1, 1, 5);
+        totalRange.setValues([totalRowData]);
+        totalRange.setFontWeight('bold');
+        totalRange.setBackground('#d9ead3');
+      }
+
+      styleHeader(sheet);
+
+      return ok({ sorted: true });
+    }
+
+    if (action === 'renameSheet') {
+      const sheet = ss.getSheetByName(data.oldName);
+      if (!sheet) return err('Sheet not found');
+      const existing = ss.getSheetByName(data.newName);
+      if (existing) return err('A tab with that name already exists');
+      sheet.setName(data.newName);
+      styleHeader(sheet);
+      reapplyTabColors(ss);
+      return ok({ renamed: true });
+    }
+
+    if (action === 'deleteSheet') {
+      const sheet = ss.getSheetByName(data.name);
+      if (!sheet) return err('Sheet not found');
+      if (ss.getSheets().length <= 1) return err('Cannot delete the only tab');
+      ss.deleteSheet(sheet);
+      reapplyTabColors(ss);
+      return ok({ deleted: true });
+    }
+
+    return err('Unknown action');
+  } catch(e) {
+    return err(e.toString());
+  }
+}
+
+function ok(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify({ ok: true, ...data }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function err(msg) {
+  return ContentService
+    .createTextOutput(JSON.stringify({ ok: false, error: msg }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
