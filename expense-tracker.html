@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Expense Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: #2e2e2e;
+    --accent: #c8f542;
+    --accent-dim: #9ab832;
+    --text: #f0f0f0;
+    --text-muted: #888;
+    --text-dim: #555;
+    --danger: #ff5f5f;
+    --warn: #ffb347;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+  .month-badge {
+    background: var(--accent);
+    color: #000;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: opacity .2s;
+  }
+  .month-badge:hover { opacity: .8; }
+
+  /* ── SETUP BANNER ── */
+  .setup-banner {
+    background: linear-gradient(135deg, #1e2a10, #1a1a1a);
+    border: 1px solid #3a5010;
+    border-radius: var(--radius);
+    margin: 16px;
+    padding: 16px;
+    display: none;
+  }
+  .setup-banner.visible { display: block; }
+  .setup-banner h3 { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+  .setup-banner p { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .setup-banner a { color: var(--accent); text-decoration: none; }
+
+  /* ── CONFIG PANEL ── */
+  .config-panel {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    display: none;
+  }
+  .config-panel.open { display: block; }
+  .config-panel h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+  .config-field { margin-bottom: 12px; }
+  .config-field label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
+  .config-field input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .config-field input:focus { border-color: var(--accent); }
+  .config-actions { display: flex; gap: 10px; margin-top: 16px; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 18px;
+    transition: all .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #d8ff55; }
+  .btn-primary:active { transform: scale(.97); }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+  .btn-ghost:hover { border-color: var(--text-muted); color: var(--text); }
+  .btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+  .btn-danger:hover { background: rgba(255,95,95,.1); }
+  .btn-sm { font-size: 12px; padding: 6px 12px; }
+  .btn-icon { padding: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-muted); cursor: pointer; transition: all .15s; }
+  .btn-icon:hover { color: var(--text); border-color: var(--text-muted); }
+
+  /* ── SUMMARY CARDS ── */
+  .summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 16px;
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+  .summary-card.accent-card {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    grid-column: span 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .summary-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .8px; color: var(--text-muted); margin-bottom: 4px; }
+  .accent-card .summary-label { color: #4a5a00; }
+  .summary-value { font-family: 'DM Serif Display', serif; font-size: 28px; }
+  .accent-card .summary-value { font-size: 32px; }
+  .summary-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .accent-card .summary-sub { color: #4a5a00; }
+
+  /* ── ADD ENTRY FORM ── */
+  .add-section {
+    padding: 0 16px 16px;
+  }
+  .add-section h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .form-field { display: flex; flex-direction: column; gap: 5px; }
+  .form-field.full { grid-column: span 2; }
+  .form-field label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+  .form-field input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color .2s, background .2s;
+    width: 100%;
+    -webkit-appearance: none;
+  }
+  .form-field input:focus { border-color: var(--accent); background: var(--surface2); }
+  .form-field input::placeholder { color: var(--text-dim); }
+  .form-submit { margin-top: 10px; }
+  .form-submit .btn { width: 100%; justify-content: center; padding: 14px; font-size: 15px; }
+
+  /* ── TABLE ── */
+  .table-section { padding: 0 16px; }
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .table-header h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .table-header .count {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .entry-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .entry-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    position: relative;
+    transition: border-color .2s;
+    animation: slideIn .25s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .entry-card:hover { border-color: #3e3e3e; }
+  .entry-card.editing { border-color: var(--accent); }
+
+  .entry-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .entry-vendor {
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1.2;
+  }
+  .entry-amount {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    color: var(--accent);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .entry-item { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+  .entry-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 8px;
+  }
+  .entry-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: all .2s;
+  }
+  .entry-card:hover .entry-actions,
+  .entry-card.editing .entry-actions {
+    opacity: 1;
+    max-height: 60px;
+  }
+
+  /* Edit inline form */
+  .edit-form { display: none; gap: 8px; flex-direction: column; margin-top: 12px; }
+  .entry-card.editing .edit-form { display: flex; }
+  .edit-form .form-grid { gap: 8px; }
+  .edit-form input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 9px 12px;
+    outline: none;
+    width: 100%;
+  }
+  .edit-form input:focus { border-color: var(--accent); }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+  }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── MONTH CONTROLS ── */
+  .month-controls {
+    padding: 16px;
+    display: flex;
+    gap: 10px;
+    border-top: 1px solid var(--border);
+    margin-top: 24px;
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+    z-index: 999;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--accent); color: var(--accent); }
+  .toast.error { border-color: var(--danger); color: var(--danger); }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: var(--border); margin: 16px; }
+
+  /* ── STATUS DOT ── */
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    display: inline-block;
+    margin-right: 6px;
+  }
+  .status-dot.connected { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .status-dot.error { background: var(--danger); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px;
+    width: 100%;
+    animation: slideUp .3s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal h3 { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 6px; }
+  .modal p { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; }
+
+  /* ── BUDGET SECTION ── */
+  .budget-section {
+    padding: 0 16px 16px;
+  }
+  .budget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .budget-header h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .budget-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .budget-card.over-budget {
+    border-color: var(--danger);
+    background: rgba(255,95,95,.05);
+  }
+  .budget-card.near-budget {
+    border-color: var(--warn);
+    background: rgba(255,179,71,.04);
+  }
+  .budget-top-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .budget-figures { display: flex; flex-direction: column; gap: 2px; }
+  .budget-spent-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .8px; }
+  .budget-spent-val {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    line-height: 1.1;
+  }
+  .budget-spent-val.over { color: var(--danger); }
+  .budget-spent-val.near { color: var(--warn); }
+  .budget-limit-wrap { text-align: right; }
+  .budget-limit-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .8px; }
+  .budget-limit-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* Progress bar */
+  .budget-bar-wrap {
+    background: var(--surface2);
+    border-radius: 99px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .budget-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: var(--accent);
+    transition: width .6s cubic-bezier(.34,1.2,.64,1), background .3s;
+    max-width: 100%;
+  }
+  .budget-bar-fill.near { background: var(--warn); }
+  .budget-bar-fill.over { background: var(--danger); }
+
+  .budget-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .budget-remaining {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .budget-remaining.safe { color: var(--accent); }
+  .budget-remaining.near { color: var(--warn); }
+  .budget-remaining.over { color: var(--danger); }
+  .budget-pct {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .budget-no-set {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .budget-no-set button {
+    margin-top: 12px;
+    display: inline-flex;
+  }
+
+  /* Budget Modal */
+  .budget-modal-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    padding: 14px 16px;
+    outline: none;
+    width: 100%;
+    -webkit-appearance: none;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .budget-modal-input:focus { border-color: var(--accent); }
+  .budget-modal-note { font-size: 12px; color: var(--text-muted); text-align: center; margin-bottom: 16px; }
+
+  .entry-card.total-row {
+    background: var(--surface2);
+    border-color: var(--accent);
+    border-style: dashed;
+  }
+  .entry-card.total-row .entry-amount {
+    font-size: 24px;
+  }
+
+  /* ── TAB SWITCHER ── */
+  .tab-switcher-wrap {
+    padding: 12px 16px 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tab-switcher-wrap::-webkit-scrollbar { display: none; }
+  .tab-switcher {
+    display: flex;
+    gap: 8px;
+    width: max-content;
+  }
+  .tab-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 14px;
+    transition: all .15s;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .tab-pill:hover { border-color: var(--text-muted); color: var(--text); }
+  .tab-pill.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+  }
+  .tab-pill-loading {
+    color: var(--text-dim);
+    font-size: 12px;
+    padding: 6px 0;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── TAB MANAGE MODAL ── */
+  .tab-manage-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; max-height: 340px; overflow-y: auto; }
+  .tab-manage-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    transition: border-color .15s;
+  }
+  .tab-manage-item.is-active { border-color: var(--accent); }
+  .tab-manage-name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tab-manage-name.is-active { color: var(--accent); }
+  .tab-manage-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--accent);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    padding: 2px 4px;
+  }
+  .tab-manage-btns { display: flex; gap: 6px; flex-shrink: 0; }
+  .tab-icon-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 5px 8px;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .tab-icon-btn:hover { border-color: var(--text-muted); color: var(--text); }
+  .tab-icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+  .tab-icon-btn.confirm { border-color: var(--accent); color: var(--accent); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">xpns<span>.</span></div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <span id="statusDot" class="status-dot" title="Not connected"></span>
+    <div class="month-badge" onclick="toggleConfig()">⚙ Settings</div>
+  </div>
+</header>
+
+<!-- CONFIG PANEL -->
+<div class="config-panel" id="configPanel">
+  <h3>Google Sheets Setup</h3>
+  <div class="config-field">
+    <label>Apps Script Web App URL</label>
+    <input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/…/exec" />
+  </div>
+  <div class="config-field">
+    <label>Currency Symbol</label>
+    <input type="text" id="currencySymbol" placeholder="LKR" style="max-width:100px;" />
+  </div>
+  <div class="config-actions">
+    <button class="btn btn-primary" onclick="saveConfig()">Save & Connect</button>
+    <button class="btn btn-ghost" onclick="toggleConfig()">Cancel</button>
+  </div>
+
+  <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+    <p style="font-size:12px; color:var(--text-muted); line-height:1.7;">
+      <strong style="color:var(--text);">How to get your Apps Script URL:</strong><br>
+      1. Open your Google Sheet → <strong>Extensions → Apps Script</strong><br>
+      2. Paste the script provided and click <strong>Save</strong><br>
+      3. Click <strong>Deploy → New deployment → Web app</strong><br>
+      4. Set <em>Execute as:</em> <strong>Me</strong> &amp; <em>Who has access:</em> <strong>Anyone</strong><br>
+      5. Click <strong>Deploy</strong> and copy the Web app URL here<br>
+    </p>
+  </div>
+</div>
+
+<!-- TAB SWITCHER -->
+<div class="tab-switcher-wrap" id="tabSwitcherWrap" style="display:none;">
+  <div style="display:flex; align-items:center; gap:8px;">
+    <div class="tab-switcher" id="tabSwitcher" style="flex:1;"></div>
+    <button class="tab-icon-btn" onclick="openManageTabsModal()" title="Manage tabs" style="flex-shrink:0; margin-right:4px;">⋯</button>
+  </div>
+</div>
+
+<!-- TAB MANAGE MODAL -->
+<div class="modal-overlay" id="manageTabsModal">
+  <div class="modal">
+    <h3>Manage Tabs</h3>
+    <p>Rename or delete any month tab. The active tab cannot be deleted.</p>
+    <div class="tab-manage-list" id="tabManageList"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1;justify-content:center;" onclick="closeManageTabsModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div class="summary">
+  <div class="summary-card accent-card">
+    <div>
+      <div class="summary-label">Month Total</div>
+      <div class="summary-value" id="totalAmount">0.00</div>
+      <div class="summary-sub" id="currentMonthLabel">Loading…</div>
+    </div>
+    <div style="font-size: 36px; opacity:.3;">◎</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Entries</div>
+    <div class="summary-value" id="entryCount">0</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Avg / Entry</div>
+    <div class="summary-value" id="avgAmount">0</div>
+  </div>
+</div>
+
+<!-- BUDGET SECTION -->
+<div class="budget-section">
+  <div class="budget-header">
+    <h3>Budget</h3>
+    <button class="btn btn-ghost btn-sm" onclick="openBudgetModal()">✏ Edit</button>
+  </div>
+  <div id="budgetCard"></div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ADD FORM -->
+<div class="add-section">
+  <h3>New Expense</h3>
+  <div class="form-grid">
+    <div class="form-field">
+      <label>Date</label>
+      <input type="date" id="newDate" />
+    </div>
+    <div class="form-field">
+      <label>Amount</label>
+      <input type="number" id="newAmount" placeholder="0.00" step="0.01" inputmode="decimal" />
+    </div>
+    <div class="form-field">
+      <label>Vendor</label>
+      <input type="text" id="newVendor" placeholder="Shop name" />
+    </div>
+    <div class="form-field">
+      <label>Item</label>
+      <input type="text" id="newItem" placeholder="What you bought" />
+    </div>
+  </div>
+  <div class="form-submit">
+    <button class="btn btn-primary" onclick="addEntry()">＋ Add Expense</button>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ENTRY LIST -->
+<div class="table-section">
+  <div class="table-header">
+    <h3>Expenses</h3>
+    <span class="count" id="entryCountLabel">0 entries</span>
+  </div>
+  <div class="entry-list" id="entryList">
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <p>No expenses yet.<br>Add your first one above.</p>
+    </div>
+  </div>
+</div>
+
+<!-- MONTH CONTROLS -->
+<div class="month-controls">
+  <button class="btn btn-ghost" style="flex:1; justify-content:center;" onclick="openNewMonthModal()">
+    📅 Start New Month Tab
+  </button>
+  <button class="btn btn-ghost btn-sm" onclick="refreshData()" title="Refresh">↻</button>
+</div>
+
+<!-- BUDGET MODAL -->
+<div class="modal-overlay" id="budgetModal">
+  <div class="modal">
+    <h3>Monthly Budget</h3>
+    <p>Set a spending limit for <strong id="budgetModalMonth"></strong>. You can update this anytime.</p>
+    <input type="number" class="budget-modal-input" id="budgetInput" placeholder="0.00" inputmode="decimal" step="0.01" />
+    <div class="budget-modal-note" id="budgetModalNote"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="saveBudget()">Save Budget</button>
+      <button class="btn btn-ghost" onclick="closeBudgetModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW MONTH MODAL -->
+<div class="modal-overlay" id="newMonthModal">
+  <div class="modal">
+    <h3>New Month Tab</h3>
+    <p>This will create a new sheet tab for the upcoming month. Your current data stays safe.</p>
+    <div class="config-field" style="margin-bottom:16px;">
+      <label>Tab Name</label>
+      <input type="text" id="newMonthName" placeholder="June 2025" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;padding:12px 14px;outline:none;width:100%;" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="createNewMonth()">Create Tab</button>
+      <button class="btn btn-ghost" onclick="closeNewMonthModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+let config = {
+  scriptUrl: localStorage.getItem('xpns_scriptUrl') || '',
+  currency: localStorage.getItem('xpns_currency') || 'LKR',
+  currentSheet: localStorage.getItem('xpns_currentSheet') || ''
+};
+
+let entries = [];
+let currentSheetName = '';
+
+// Budget state — stored per sheet name
+function getBudget(sheetName) {
+  const val = localStorage.getItem('xpns_budget_' + sheetName);
+  return val ? parseFloat(val) : null;
+}
+function setBudget(sheetName, amount) {
+  localStorage.setItem('xpns_budget_' + sheetName, amount);
+}
+
+// ── BUDGET RENDER ──────────────────────────────────────
+function renderBudget() {
+  const card = document.getElementById('budgetCard');
+  const budget = getBudget(currentSheetName);
+  const total = entries.reduce((s, e) => s + e.amount, 0);
+  const cur = config.currency;
+
+  if (!budget) {
+    card.innerHTML = `
+      <div class="budget-no-set">
+        <div style="font-size:32px;margin-bottom:8px;">🎯</div>
+        <div>No budget set for this month.</div>
+        <button class="btn btn-ghost btn-sm" onclick="openBudgetModal()" style="margin-top:12px;">＋ Set Budget</button>
+      </div>`;
+    return;
+  }
+
+  const pct = Math.min((total / budget) * 100, 100);
+  const remaining = budget - total;
+  const over = total > budget;
+  const near = !over && pct >= 80;
+
+  const cardClass = over ? 'over-budget' : near ? 'near-budget' : '';
+  const valClass = over ? 'over' : near ? 'near' : '';
+  const barClass = over ? 'over' : near ? 'near' : '';
+  const remClass = over ? 'over' : near ? 'near' : 'safe';
+
+  const remLabel = over
+    ? `⚠ ${cur} ${Math.abs(remaining).toFixed(2)} over budget`
+    : near
+      ? `⚡ ${cur} ${remaining.toFixed(2)} remaining`
+      : `✓ ${cur} ${remaining.toFixed(2)} remaining`;
+
+  card.innerHTML = `
+    <div class="budget-card ${cardClass}">
+      <div class="budget-top-row">
+        <div class="budget-figures">
+          <div class="budget-spent-label">Spent</div>
+          <div class="budget-spent-val ${valClass}">${total.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        </div>
+        <div class="budget-limit-wrap">
+          <div class="budget-limit-label">Budget</div>
+          <div class="budget-limit-val">${cur} ${budget.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        </div>
+      </div>
+      <div class="budget-bar-wrap">
+        <div class="budget-bar-fill ${barClass}" style="width:${pct.toFixed(1)}%"></div>
+      </div>
+      <div class="budget-stats">
+        <div class="budget-remaining ${remClass}">${remLabel}</div>
+        <div class="budget-pct">${pct.toFixed(0)}% used</div>
+      </div>
+    </div>`;
+}
+
+// ── BUDGET MODAL ───────────────────────────────────────
+function openBudgetModal() {
+  const existing = getBudget(currentSheetName);
+  document.getElementById('budgetModalMonth').textContent = currentSheetName || 'this month';
+  document.getElementById('budgetInput').value = existing || '';
+  document.getElementById('budgetModalNote').textContent = existing
+    ? `Current budget: ${config.currency} ${existing.toLocaleString('en',{minimumFractionDigits:2})}`
+    : 'Enter your total spending limit for this month.';
+  document.getElementById('budgetModal').classList.add('open');
+  setTimeout(() => document.getElementById('budgetInput').focus(), 300);
+}
+function closeBudgetModal() {
+  document.getElementById('budgetModal').classList.remove('open');
+}
+function saveBudget() {
+  const val = parseFloat(document.getElementById('budgetInput').value);
+  if (isNaN(val) || val <= 0) {
+    showToast('Enter a valid budget amount', 'error');
+    return;
+  }
+  setBudget(currentSheetName, val);
+  closeBudgetModal();
+  renderBudget();
+  showToast('Budget saved ✓', 'success');
+}
+
+// ── INIT ───────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('newDate').value = today();
+  document.getElementById('scriptUrl').value = config.scriptUrl;
+  document.getElementById('currencySymbol').value = config.currency;
+
+  if (config.scriptUrl) {
+    initSheet();
+  } else {
+    toggleConfig();
+    updateStatus('disconnected');
+    renderBudget();
+  }
+
+  const next = nextMonthName();
+  document.getElementById('newMonthName').value = next;
+});
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function nextMonthName() {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1);
+  return d.toLocaleString('default', { month: 'long', year: 'numeric' });
+}
+
+function thisMonthName() {
+  return new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+}
+
+// ── CONFIG ─────────────────────────────────────────────
+function toggleConfig() {
+  const panel = document.getElementById('configPanel');
+  panel.classList.toggle('open');
+}
+
+function saveConfig() {
+  config.scriptUrl = document.getElementById('scriptUrl').value.trim();
+  config.currency = document.getElementById('currencySymbol').value.trim() || 'LKR';
+
+  localStorage.setItem('xpns_scriptUrl', config.scriptUrl);
+  localStorage.setItem('xpns_currency', config.currency);
+
+  toggleConfig();
+  initSheet();
+}
+
+// ── APPS SCRIPT API ────────────────────────────────────
+async function api(payload) {
+  const res = await fetch(config.scriptUrl, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || 'Unknown error');
+  return data;
+}
+
+// ── TAB SWITCHER ───────────────────────────────────────
+let allSheets = [];
+
+function renderTabSwitcher() {
+  const wrap = document.getElementById('tabSwitcherWrap');
+  const container = document.getElementById('tabSwitcher');
+  if (!allSheets.length) { wrap.style.display = 'none'; return; }
+
+  wrap.style.display = 'block';
+  container.innerHTML = allSheets.map(name => `
+    <div class="tab-pill ${name === currentSheetName ? 'active' : ''}"
+         onclick="switchTab('${name.replace(/'/g,"\\'")}')">
+      ${esc(name)}
+    </div>
+  `).join('');
+
+  // Scroll active pill into view
+  setTimeout(() => {
+    const active = container.querySelector('.tab-pill.active');
+    if (active) active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, 100);
+}
+
+// ── MANAGE TABS MODAL ──────────────────────────────────
+function openManageTabsModal() {
+  renderTabManageList();
+  document.getElementById('manageTabsModal').classList.add('open');
+}
+function closeManageTabsModal() {
+  document.getElementById('manageTabsModal').classList.remove('open');
+}
+
+function renderTabManageList() {
+  const list = document.getElementById('tabManageList');
+  list.innerHTML = allSheets.map((name, idx) => {
+    const isActive = name === currentSheetName;
+    return `
+      <div class="tab-manage-item ${isActive ? 'is-active' : ''}" id="tmi-${idx}">
+        <span class="tab-manage-name ${isActive ? 'is-active' : ''}" id="tmi-label-${idx}">${esc(name)}</span>
+        <input class="tab-manage-input" id="tmi-input-${idx}" value="${esc(name)}" style="display:none;" />
+        <div class="tab-manage-btns" id="tmi-btns-${idx}">
+          <button class="tab-icon-btn" onclick="startRenameTab(${idx})">✏ Rename</button>
+          <button class="tab-icon-btn danger" onclick="confirmDeleteTab(${idx})"
+            ${isActive ? 'disabled style="opacity:.3;cursor:not-allowed;"' : ''}>✕ Delete</button>
+        </div>
+        <div class="tab-manage-btns" id="tmi-editbtns-${idx}" style="display:none;">
+          <button class="tab-icon-btn confirm" onclick="saveRenameTab(${idx})">✓ Save</button>
+          <button class="tab-icon-btn" onclick="cancelRenameTab(${idx})">✕</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function startRenameTab(idx) {
+  document.getElementById('tmi-label-' + idx).style.display = 'none';
+  document.getElementById('tmi-input-' + idx).style.display = 'block';
+  document.getElementById('tmi-btns-' + idx).style.display = 'none';
+  document.getElementById('tmi-editbtns-' + idx).style.display = 'flex';
+  document.getElementById('tmi-input-' + idx).focus();
+  document.getElementById('tmi-input-' + idx).select();
+}
+
+function cancelRenameTab(idx) {
+  document.getElementById('tmi-label-' + idx).style.display = 'block';
+  document.getElementById('tmi-input-' + idx).style.display = 'none';
+  document.getElementById('tmi-btns-' + idx).style.display = 'flex';
+  document.getElementById('tmi-editbtns-' + idx).style.display = 'none';
+  document.getElementById('tmi-input-' + idx).value = allSheets[idx];
+}
+
+async function saveRenameTab(idx) {
+  const oldName = allSheets[idx];
+  const newName = document.getElementById('tmi-input-' + idx).value.trim();
+  if (!newName) { showToast('Name cannot be empty', 'error'); return; }
+  if (newName === oldName) { cancelRenameTab(idx); return; }
+
+  try {
+    await api({ action: 'renameSheet', oldName, newName });
+
+    allSheets[idx] = newName;
+    if (currentSheetName === oldName) {
+      currentSheetName = newName;
+      config.currentSheet = newName;
+      localStorage.setItem('xpns_currentSheet', newName);
+      document.getElementById('currentMonthLabel').textContent = newName;
+    }
+    const budgetVal = localStorage.getItem('xpns_budget_' + oldName);
+    if (budgetVal) {
+      localStorage.setItem('xpns_budget_' + newName, budgetVal);
+      localStorage.removeItem('xpns_budget_' + oldName);
+    }
+
+    showToast('Renamed to ' + newName, 'success');
+    renderTabSwitcher();
+    renderTabManageList();
+  } catch (e) {
+    showToast('Failed: ' + e.message, 'error');
+  }
+}
+
+async function confirmDeleteTab(idx) {
+  const name = allSheets[idx];
+  if (name === currentSheetName) {
+    showToast('Switch to another tab before deleting this one', 'error');
+    return;
+  }
+  if (!confirm(`Delete tab "${name}" and all its data?\nThis cannot be undone.`)) return;
+
+  try {
+    await api({ action: 'deleteSheet', name });
+    allSheets.splice(idx, 1);
+    localStorage.removeItem('xpns_budget_' + name);
+    showToast('Tab deleted', 'success');
+    renderTabSwitcher();
+    renderTabManageList();
+  } catch (e) {
+    showToast('Failed: ' + e.message, 'error');
+  }
+}
+
+async function switchTab(name) {
+  if (name === currentSheetName) return;
+  currentSheetName = name;
+  config.currentSheet = name;
+  localStorage.setItem('xpns_currentSheet', name);
+  document.getElementById('currentMonthLabel').textContent = name;
+  renderTabSwitcher();
+  await ensureHeader();
+  await loadEntries();
+}
+
+// ── INIT SHEET ─────────────────────────────────────────
+async function initSheet() {
+  try {
+    const data = await api({ action: 'getSheets' });
+    allSheets = data.sheets || [];
+
+    if (!config.currentSheet || !allSheets.includes(config.currentSheet)) {
+      const fallback = allSheets[allSheets.length - 1] || thisMonthName();
+      config.currentSheet = fallback;
+      localStorage.setItem('xpns_currentSheet', fallback);
+    }
+
+    currentSheetName = config.currentSheet;
+    document.getElementById('currentMonthLabel').textContent = currentSheetName;
+
+    updateStatus('connected');
+    renderTabSwitcher();
+    await ensureHeader();
+    await loadEntries();
+  } catch (e) {
+    updateStatus('error');
+    showToast('Connection failed: ' + e.message, 'error');
+  }
+}
+
+async function ensureHeader() {
+  await api({ action: 'ensureHeader', sheet: currentSheetName });
+}
+
+// ── LOAD ENTRIES ───────────────────────────────────────
+let sheetTotal = null;
+
+// Normalise any date format from Sheets into YYYY-MM-DD
+function normaliseDate(raw) {
+  if (!raw) return '';
+  const s = String(raw).trim();
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // DD/MM/YYYY
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [d, m, y] = s.split('/');
+    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  // MM/DD/YYYY
+  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s)) {
+    const parts = s.split('/');
+    return `${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
+  }
+  // Try native parse as fallback but extract parts to avoid UTC shift
+  const d = new Date(s);
+  if (!isNaN(d)) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  return s;
+}
+
+async function loadEntries() {
+  try {
+    const data = await api({ action: 'getRows', sheet: currentSheetName });
+    const rows = data.rows || [];
+
+    sheetTotal = null;
+    entries = rows.slice(1)
+      .map((r, i) => ({
+        row: i + 2,
+        date: normaliseDate(r[0]),
+        vendor: r[1] || '',
+        item: r[2] || '',
+        amount: parseFloat(r[3]) || 0,
+        id: r[4] || String(i + 2),
+        isTotal: r[0] === 'TOTAL'
+      }))
+      .filter(e => {
+        if (e.isTotal) { sheetTotal = e.amount; return false; }
+        return e.vendor || e.amount;
+      });
+
+    renderEntries();
+    updateSummary();
+  } catch (e) {
+    showToast('Load failed: ' + e.message, 'error');
+  }
+}
+
+// ── ADD ENTRY ──────────────────────────────────────────
+async function addEntry() {
+  const date = document.getElementById('newDate').value;
+  const amount = parseFloat(document.getElementById('newAmount').value);
+  const vendor = document.getElementById('newVendor').value.trim();
+  const item = document.getElementById('newItem').value.trim();
+
+  if (!date || !vendor || isNaN(amount) || amount <= 0) {
+    showToast('Please fill in date, vendor and amount', 'error');
+    return;
+  }
+  if (!config.scriptUrl) {
+    showToast('Connect Google Sheets first', 'error');
+    toggleConfig();
+    return;
+  }
+
+  const id = Date.now().toString();
+  try {
+    await api({ action: 'appendRow', sheet: currentSheetName, row: [date, vendor, item, amount, id] });
+    await api({ action: 'sortSheet', sheet: currentSheetName });
+    showToast('Expense added ✓', 'success');
+    document.getElementById('newAmount').value = '';
+    document.getElementById('newVendor').value = '';
+    document.getElementById('newItem').value = '';
+    await loadEntries();
+  } catch (e) {
+    showToast('Failed: ' + e.message, 'error');
+  }
+}
+
+// ── DELETE ENTRY ───────────────────────────────────────
+async function deleteEntry(rowIndex, entryId) {
+  if (!confirm('Remove this expense?')) return;
+  try {
+    await api({ action: 'clearRow', sheet: currentSheetName, rowIndex });
+    showToast('Removed ✓', 'success');
+    await loadEntries();
+  } catch (e) {
+    showToast('Failed: ' + e.message, 'error');
+  }
+}
+
+// ── EDIT ENTRY ─────────────────────────────────────────
+function startEdit(entryId) {
+  const card = document.querySelector(`[data-id="${entryId}"]`);
+  card.classList.add('editing');
+  const e = entries.find(x => x.id === entryId);
+  card.querySelector('.edit-date').value = e.date;
+  card.querySelector('.edit-vendor').value = e.vendor;
+  card.querySelector('.edit-item').value = e.item;
+  card.querySelector('.edit-amount').value = e.amount;
+}
+
+function cancelEdit(entryId) {
+  const card = document.querySelector(`[data-id="${entryId}"]`);
+  card.classList.remove('editing');
+}
+
+async function saveEdit(entryId, rowIndex) {
+  const card = document.querySelector(`[data-id="${entryId}"]`);
+  const date = card.querySelector('.edit-date').value;
+  const vendor = card.querySelector('.edit-vendor').value.trim();
+  const item = card.querySelector('.edit-item').value.trim();
+  const amount = parseFloat(card.querySelector('.edit-amount').value);
+
+  if (!date || !vendor || isNaN(amount)) {
+    showToast('Fill all required fields', 'error');
+    return;
+  }
+
+  try {
+    await api({ action: 'updateRow', sheet: currentSheetName, rowIndex, row: [date, vendor, item, amount, entryId] });
+    await api({ action: 'sortSheet', sheet: currentSheetName });
+    showToast('Updated ✓', 'success');
+    card.classList.remove('editing');
+    await loadEntries();
+  } catch (e) {
+    showToast('Update failed: ' + e.message, 'error');
+  }
+}
+
+// ── RENDER ─────────────────────────────────────────────
+function renderEntries() {
+  const list = document.getElementById('entryList');
+  const cur = config.currency;
+
+  if (entries.length === 0 && sheetTotal === null) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <p>No expenses yet.<br>Add your first one above.</p>
+    </div>`;
+    return;
+  }
+
+  // Sort by date ascending (oldest first)
+  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+
+  const entryHTML = sorted.map(e => `
+    <div class="entry-card" data-id="${e.id}">
+      <div class="entry-top">
+        <div>
+          <div class="entry-vendor">${esc(e.vendor)}</div>
+          <div class="entry-item">${esc(e.item) || '—'}</div>
+          <div class="entry-date">${formatDate(e.date)}</div>
+        </div>
+        <div class="entry-amount">${cur} ${e.amount.toFixed(2)}</div>
+      </div>
+      <div class="entry-actions">
+        <button class="btn btn-ghost btn-sm" onclick="startEdit('${e.id}')">✏ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteEntry(${e.row}, '${e.id}')">✕ Remove</button>
+      </div>
+      <div class="edit-form">
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Date</label>
+            <input type="date" class="edit-date" />
+          </div>
+          <div class="form-field">
+            <label>Amount</label>
+            <input type="number" class="edit-amount" step="0.01" inputmode="decimal" />
+          </div>
+          <div class="form-field">
+            <label>Vendor</label>
+            <input type="text" class="edit-vendor" />
+          </div>
+          <div class="form-field">
+            <label>Item</label>
+            <input type="text" class="edit-item" />
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button class="btn btn-primary btn-sm" onclick="saveEdit('${e.id}', ${e.row})">Save</button>
+          <button class="btn btn-ghost btn-sm" onclick="cancelEdit('${e.id}')">Cancel</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  // Total row at bottom
+  const totalHTML = sheetTotal !== null ? `
+    <div class="entry-card total-row">
+      <div class="entry-top">
+        <div>
+          <div class="entry-vendor" style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);">Month Total</div>
+        </div>
+        <div class="entry-amount" style="font-size:24px;">${cur} ${sheetTotal.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+      </div>
+    </div>
+  ` : '';
+
+  list.innerHTML = entryHTML + totalHTML;
+}
+
+function updateSummary() {
+  const total = entries.reduce((s, e) => s + e.amount, 0);
+  const count = entries.length;
+  const avg = count ? (total / count) : 0;
+  const cur = config.currency;
+
+  document.getElementById('totalAmount').textContent = total.toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('entryCount').textContent = count;
+  document.getElementById('avgAmount').textContent = avg.toFixed(0);
+  document.getElementById('entryCountLabel').textContent = count + ' entr' + (count === 1 ? 'y' : 'ies');
+  document.getElementById('currentMonthLabel').textContent = currentSheetName;
+  renderBudget();
+}
+
+// ── NEW MONTH ──────────────────────────────────────────
+function openNewMonthModal() {
+  document.getElementById('newMonthModal').classList.add('open');
+}
+function closeNewMonthModal() {
+  document.getElementById('newMonthModal').classList.remove('open');
+}
+
+async function createNewMonth() {
+  const name = document.getElementById('newMonthName').value.trim();
+  if (!name) { showToast('Enter a tab name', 'error'); return; }
+
+  try {
+    // 1. Write total row to current (previous) month tab
+    const prevSheet = currentSheetName;
+    showToast('Saving total for ' + prevSheet + '…', '');
+    await api({ action: 'writeTotalRow', sheet: prevSheet });
+
+    // 2. Create the new tab
+    await api({ action: 'addSheet', name });
+
+    // 3. Refresh sheet list
+    const data = await api({ action: 'getSheets' });
+    allSheets = data.sheets || [];
+
+    config.currentSheet = name;
+    localStorage.setItem('xpns_currentSheet', name);
+    currentSheetName = name;
+
+    closeNewMonthModal();
+    showToast('New tab created: ' + name, 'success');
+
+    const d = new Date();
+    d.setMonth(d.getMonth() + 2);
+    document.getElementById('newMonthName').value = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+    renderTabSwitcher();
+    await ensureHeader();
+    await loadEntries();
+  } catch (e) {
+    showToast('Failed: ' + e.message, 'error');
+  }
+}
+
+// ── UTILS ──────────────────────────────────────────────
+function updateStatus(state) {
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot ' + (state === 'connected' ? 'connected' : state === 'error' ? 'error' : '');
+  dot.title = state === 'connected' ? 'Connected to Google Sheets'
+            : state === 'error' ? 'Connection error'
+            : 'Not connected';
+}
+
+function formatDate(str) {
+  if (!str) return '';
+  try {
+    const [year, month, day] = str.split('-');
+    const d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  } catch { return str; }
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+async function refreshData() {
+  if (!config.scriptUrl) return;
+  await loadEntries();
+  showToast('Refreshed', 'success');
+}
+
+// Close modal on overlay click
+document.getElementById('newMonthModal').addEventListener('click', function(e) {
+  if (e.target === this) closeNewMonthModal();
+});
+document.getElementById('budgetModal').addEventListener('click', function(e) {
+  if (e.target === this) closeBudgetModal();
+});
+document.getElementById('manageTabsModal').addEventListener('click', function(e) {
+  if (e.target === this) closeManageTabsModal();
+});
+</script>
+</body>
+</html>
